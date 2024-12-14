@@ -1,16 +1,31 @@
-# jokeapp
+# JokeApp
 
-A new Flutter project.
+**JokeApp** is a simple Flutter application that fetches jokes from a public REST API ([JokeAPI](https://jokeapi.dev/)). The app allows users to retrieve random programming-related jokes and displays them in an elegant interface.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- Fetches jokes from the [JokeAPI](https://jokeapi.dev/) endpoint.
+- Displays both single-line and two-part jokes.
+- Responsive UI with smooth gradients and modern styling.
+- Error handling with friendly messages.
 
-A few resources to get you started if this is your first Flutter project:
+## How to Run the Application
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 1. Clone the Repository:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Run the following command to clone the repository to your local machine:
+
+```bash
+git clone <repository-url>
+cd jokeapp
+```
+
+### 2. Install Dependencies:
+
+Run the following command to install the required Flutter packages:
+
+```bash
+flutter pub get
+```
+```bash
+flutter run
