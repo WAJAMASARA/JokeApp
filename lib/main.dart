@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Joke App',
-      theme: ThemeData(primarySwatch: Colors.deepPurple), // Updated color scheme
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
       home: const JokeListPage(),
     );
   }
@@ -26,15 +26,28 @@ class JokeListPage extends StatefulWidget {
 }
 
 class _JokeListPageState extends State<JokeListPage> {
-  final JokeService _jokeService = JokeService(); // Handles joke fetching logic
-  List<Map<String, dynamic>> _jokesRaw = []; // List to store fetched jokes
-  bool _isLoading = false; // Loading indicator
+  final JokeService _jokeService = JokeService();
+  List<Map<String, dynamic>> _jokes = [];
+  bool _isLoading = false;
 
-  /// Fetches jokes from the service and updates the UI.
+  @override
+  void initState() {
+    super.initState();
+    _loadCachedJokes();
+  }
+
+  /// Loads cached jokes and displays them.
+  Future<void> _loadCachedJokes() async {
+    final cachedJokes = await _jokeService.getCachedJokes();
+    setState(() => _jokes = cachedJokes);
+  }
+
+  /// Fetches jokes from the API and updates the UI.
   Future<void> _fetchJokes() async {
     setState(() => _isLoading = true);
     try {
-      _jokesRaw = await _jokeService.fetchJokesRaw();
+      final jokes = await _jokeService.fetchAndCacheJokes();
+      setState(() => _jokes = jokes);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to fetch jokes: $e')),
@@ -48,118 +61,95 @@ class _JokeListPageState extends State<JokeListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Joke App',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.deepPurple, // Unified color scheme
+        title: const Text('Joke App'),
+        backgroundColor: Colors.deepPurple,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.deepPurple.shade100, Colors.white], // Smooth gradient
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Welcome Text
-              const Text(
-                'Welcome to the Joke App!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                  shadows: [Shadow(color: Colors.white, blurRadius: 2)],
-                ),
-                textAlign: TextAlign.center,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ElevatedButton(
+              onPressed: _fetchJokes,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
               ),
-              const SizedBox(height: 16),
-              // Instructions Text
-              const Text(
-                'Click the button to fetch random jokes!',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w400,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.deepPurple,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              // Fetch Jokes Button
-              ElevatedButton(
-                onPressed: _fetchJokes,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Fetch Jokes',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Joke List or Loading Indicator
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildJokeList(),
-              ),
-            ],
-          ),
+              child: const Text('Fetch Jokes'),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildJokeList(),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  /// Builds a list of jokes to display.
+  /// Builds a list of jokes to display with enhanced UI.
   Widget _buildJokeList() {
-    if (_jokesRaw.isEmpty) {
+    if (_jokes.isEmpty) {
       return const Center(
-        child: Text(
-          'No jokes fetched yet.',
-          style: TextStyle(fontSize: 18, color: Colors.deepPurple),
-        ),
+        child: Text('No jokes available.'),
       );
     }
 
     return ListView.builder(
-      itemCount: _jokesRaw.length,
+      itemCount: _jokes.length,
       itemBuilder: (context, index) {
-        final joke = _jokesRaw[index];
-
-        // Render joke based on its type.
+        final joke = _jokes[index];
         final isTwoPart = joke['type'] == 'twopart';
         final jokeText = isTwoPart
-            ? '${joke['setup']}\n\n${joke['delivery']}' // Two-part joke
-            : joke['joke']; // Single-line joke
+            ? '${joke['setup']}\n\n${joke['delivery']}'
+            : joke['joke'];
 
         return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16.0),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              jokeText,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
+          elevation: 4,
+          child: InkWell(
+            onTap: () {
+              // Optional: Add interaction, like showing a detailed view.
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isTwoPart)
+                    Text(
+                      joke['setup'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                  if (isTwoPart)
+                    const SizedBox(height: 8),
+                  Text(
+                    isTwoPart ? joke['delivery'] ?? '' : jokeText,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: const [
+                      Icon(
+                        Icons.emoji_emotions_outlined,
+                        color: Colors.deepPurple,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );

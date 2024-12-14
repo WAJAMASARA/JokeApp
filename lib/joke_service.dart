@@ -1,39 +1,55 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Service class to fetch jokes from the JokeAPI.
+/// Service class to fetch jokes from the JokeAPI and cache them.
 class JokeService {
   final Dio _dio = Dio(); // HTTP client instance.
   final String baseUrl = 'https://v2.jokeapi.dev/joke'; // API base URL.
 
-  /// Fetches a list of jokes from the API.
-  Future<List<Map<String, dynamic>>> fetchJokesRaw() async {
+  /// Fetches a list of jokes from the API and caches them.
+  Future<List<Map<String, dynamic>>> fetchAndCacheJokes() async {
     try {
-      // Send GET request with query parameters.
       final response = await _dio.get(
-        '$baseUrl/programming', // Endpoint for programming jokes.
+        '$baseUrl/Programming',
         queryParameters: {
-          'amount': 3, // Number of jokes to fetch.
-          'type': 'single,twopart', // Joke types to include.
-          'blacklistFlag': 'nsfw,religious,political,racist,sexist,explicit', // Exclude certain categories.
+          'amount': 5, // Number of jokes to fetch.
+          'type': 'single,twopart', // Include both types of jokes.
+          'blacklistFlags': 'nsfw,religious,political,racist,sexist,explicit', // Exclude certain categories.
         },
       );
 
-      // Check for a successful response.
-      if (response.statusCode == 200) {
-        // Check if the API returned an error.
-        if (response.data['error'] == true) {
-          throw Exception(response.data['message'] ?? 'Failed to fetch jokes');
-        }
-
-        // Extract and return jokes as a list of maps.
+      if (response.statusCode == 200 && response.data['error'] == false) {
         final List<dynamic> jokeJson = response.data['jokes'];
-        return jokeJson.cast<Map<String, dynamic>>();
+        final jokes = jokeJson.cast<Map<String, dynamic>>();
+
+        // Cache jokes locally.
+        await _cacheJokes(jokes);
+        return jokes;
       } else {
         throw Exception('Failed to load jokes: ${response.statusCode}');
       }
     } catch (e) {
-      // Handle errors and rethrow.
       throw Exception('Error fetching jokes: $e');
     }
+  }
+
+  /// Caches jokes in shared preferences.
+  Future<void> _cacheJokes(List<Map<String, dynamic>> jokes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jokesJson = jsonEncode(jokes);
+    await prefs.setString('cached_jokes', jokesJson);
+  }
+
+  /// Retrieves cached jokes from shared preferences.
+  Future<List<Map<String, dynamic>>> getCachedJokes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jokesJson = prefs.getString('cached_jokes');
+
+    if (jokesJson != null) {
+      final List<dynamic> jokeList = jsonDecode(jokesJson);
+      return jokeList.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 }
